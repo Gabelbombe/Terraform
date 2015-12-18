@@ -1,0 +1,93 @@
+{
+  "variables": {
+    "aws_access_key":  "{{env `AWS_ACCESS_KEY`}}",
+    "aws_secret_key":  "{{env `AWS_SECRET_KEY`}}",
+    "atlas_username":  "{{env `ATLAS_USERNAME`}}",
+    "name":            "aws-ubuntu-base",
+    "vpc_id":          "",
+    "subnet_id":       "",
+    "source_ami":      "ami-9a562df2",
+    "ssh_username":    "ubuntu",
+    "scripts_dir":     "packer/scripts/ubuntu",
+    "certs_dir":       "terraform/certs",
+    "cert_name":       "example.crt",
+    "consul_download": "https://dl.bintray.com/mitchellh/consul/0.5.2_linux_amd64.zip",
+    "consul_web_ui":   "https://dl.bintray.com/mitchellh/consul/0.5.2_web_ui.zip"
+  },
+  "push": {
+    "name": "{{user `atlas_username`}}/{{user `name`}}",
+    "base_dir": "../../../.",
+    "include": [
+      "{{user `scripts_dir`}}/*",
+      "{{user `scripts_dir`}}/upstart/*",
+      "{{user `certs_dir`}}/{{user `cert_name`}}"
+    ],
+    "vcs": false
+  },
+  "builders": [
+    {
+      "type":            "amazon-ebs",
+      "access_key":      "{{user `aws_access_key`}}",
+      "secret_key":      "{{user `aws_secret_key`}}",
+      "region":          "us-east-1",
+      "vpc_id":          "{{user `vpc_id`}}",
+      "subnet_id":       "{{user `subnet_id`}}",
+      "source_ami":      "{{user `source_ami`}}",
+      "instance_type":   "t2.micro",
+      "ssh_username":    "{{user `ssh_username`}}",
+      "ssh_timeout":     "30m",
+      "ami_name":        "{{user `name`}} {{timestamp}}",
+      "ami_description": "{{user `name`}} AMI",
+      "run_tags": { "ami-create": "{{user `name`}}" },
+      "tags": { "ami": "{{user `name`}}" },
+      "associate_public_ip_address": true
+    }
+  ],
+  "provisioners": [
+    {
+      "type": "shell",
+      "execute_command": "echo {{user `ssh_username`}} | {{ .Vars }} sudo -E -S sh '{{ .Path }}'",
+      "inline": [
+        "mkdir -p /ops/{{user `scripts_dir`}}",
+        "chmod a+w /ops/{{user `scripts_dir`}}",
+        "mkdir -p /ops/{{user `certs_dir`}}",
+        "chmod a+w /ops/{{user `certs_dir`}}"
+      ]
+    },
+    {
+      "type": "file",
+      "source": "{{user `scripts_dir`}}/.",
+      "destination": "/ops/{{user `scripts_dir`}}"
+    },
+    {
+      "type": "file",
+      "source": "{{user `certs_dir`}}/{{user `cert_name`}}",
+      "destination": "/ops/{{user `certs_dir`}}/{{user `cert_name`}}"
+    },
+    {
+      "type": "shell",
+      "execute_command": "echo {{user `ssh_username`}} | {{ .Vars }} sudo -E -S sh '{{ .Path }}'",
+      "script": "{{user `scripts_dir`}}/dependencies.sh"
+    },
+    {
+      "type": "shell",
+      "execute_command": "echo {{user `ssh_username`}} | {{ .Vars }} sudo -E -S sh '{{ .Path }}'",
+      "inline": [
+        "sh /ops/{{user `scripts_dir`}}/certs.sh {{user `cert_name`}} {{user `certs_dir`}}",
+        "sh /ops/{{user `scripts_dir`}}/consul.sh {{user `consul_download`}} {{user `consul_web_ui`}}",
+        "sh /ops/{{user `scripts_dir`}}/upstart/consul_client.sh {{user `scripts_dir`}}",
+        "sh /ops/{{user `scripts_dir`}}/cleanup.sh"
+      ]
+    }
+  ],
+  "post-processors": [
+    {
+      "type": "atlas",
+      "artifact": "{{user `atlas_username`}}/{{user `name`}}",
+      "artifact_type": "amazon.ami",
+      "metadata": {
+        "created_at": "{{timestamp}}"
+      }
+    }
+  ]
+}
