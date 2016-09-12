@@ -24,9 +24,12 @@
   
 ##### Amazon Web Services
   - [IAM](https://aws.amazon.com/documentation/iam/)
+  - [RDS]()
+  - [Route53]()
   - [EC2](https://aws.amazon.com/documentation/ec2/)
   - [ELB](http://docs.aws.amazon.com/elasticbeanstalk/latest/dg/using-features.managing.elb.html)
   - [AMI](http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/AMIs.html)
+  - [ElastiCache]()
   - [VPC](https://aws.amazon.com/documentation/vpc/)
 
 ##### Languages Implemented
@@ -43,4 +46,6 @@
   - [RabbitMQ](https://www.rabbitmq.com/)
   - [CloudFlare](https://www.cloudflare.com/)
   - [Redis](http://redis.io/)
+  - [OpenVPN]()
+  - [HAProxy]()
   
